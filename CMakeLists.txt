@@ -13,7 +13,7 @@ else()
 endif()
 
 cmake_minimum_required(VERSION 3.16)
-project(hello)
+project(amigawars)
 
 add_subdirectory(deps/ACE ace)
 include_directories(deps/ACE/include)
@@ -22,10 +22,8 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/src
 )
 
-set(C_SOURCES src/main.c
-              src/game.c)
-
-set(HEADERS src/game.h)
+file(GLOB_RECURSE C_SOURCES src/*.c)
+file(GLOB_RECURSE HEADERS src/*.h)
 
 set(SOURCES ${C_SOURCES} ${HEADERS})
 
