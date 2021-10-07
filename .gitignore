@@ -3,3 +3,4 @@ build/
 rom.key
 *.adf
 .vscode/settings.json
+build_linux/

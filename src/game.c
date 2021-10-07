@@ -70,15 +70,15 @@ void loadMap(const char* race, uint8_t index) {
     UWORD mapColorsPos = tileStartPos + tileBufferGetRawCopperlistInstructionCountStart(BPP);
     UWORD tileBreakPos = mapColorsPos + COLORS;
 
-    snprintf(mapname + strlen(MAPDIR), strlen(LONGEST_MAPNAME) + 1, "%s%d.map", race, index);
-    tFile *map = fileOpen(mapname, "r");
-    if (!map) {
-        logWrite("ERROR: Cannot open file %s!\n", mapname);
-    }
+    // snprintf(mapname + strlen(MAPDIR), strlen(LONGEST_MAPNAME) + 1, "%s%d.map", race, index);
+    // tFile *map = fileOpen(mapname, "r");
+    // if (!map) {
+    //     logWrite("ERROR: Cannot open file %s!\n", mapname);
+    // }
 
-    // three bytes behind map data are name of the palette/terrain
-    fileRead(map, palname + strlen(IMGDIR), 3);
-    strncpy(imgname + strlen(IMGDIR), palname + strlen(IMGDIR), 3);
+    // first three bytes are simply name of the palette/terrain
+    // fileRead(map, palname + strlen(IMGDIR), 3);
+    // strncpy(imgname + strlen(IMGDIR), palname + strlen(IMGDIR), 3);
 
     logWrite("Loading map: %s %s\n", palname, imgname);
     // create map area
@@ -116,9 +116,12 @@ void loadMap(const char* race, uint8_t index) {
 
     for (int x = 0; x < MAP_SIZE; x++) {
         logWrite("file tile data %d\n", x);
-        fileRead(map, s_pMapBuffer->pTileData[x], MAP_SIZE);
+        // fileRead(map, s_pMapBuffer->pTileData[x], MAP_SIZE);
+        for (int y = 0; y < MAP_SIZE; y++) {
+            s_pMapBuffer->pTileData[x][y] = 0;
+        }
     }
-    fileClose(map);
+    // fileClose(map);
 
     tileBufferRedrawAll(s_pMapBuffer);
 }
@@ -150,7 +153,7 @@ void gameGsCreate(void) {
 
     loadMap("orc", 12);
 
-    loadGoldmine();
+    // loadGoldmine();
 
     // create panel area
     // paletteLoad("resources/human_panel.plt", s_pPanelPalette, COLORS);
@@ -216,13 +219,13 @@ void gameGsLoop(void) {
         }
     }
 
-    bobNewBegin(s_pMapBuffer->pScroll->pBack);
+    // bobNewBegin(s_pMapBuffer->pScroll->pBack);
     // if (tileBufferIsTileOnBuffer(s_pMapBuffer, 80 / 16, 80 / 16)) {
-    bobNewPush(&s_GoldMineBob);
+    // bobNewPush(&s_GoldMineBob);
     // }
-    bobNewPushingDone();
-    bobNewProcessNext();
-    bobNewEnd();
+    // bobNewPushingDone();
+    // bobNewProcessNext();
+    // bobNewEnd();
 
     viewProcessManagers(s_pView);
     copProcessBlocks();

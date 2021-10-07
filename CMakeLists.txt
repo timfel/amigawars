@@ -28,3 +28,16 @@ file(GLOB_RECURSE HEADERS src/*.h)
 set(SOURCES ${C_SOURCES} ${HEADERS})
 
 include(target-definition.cmake)
+
+# resources
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/resources/imgs)
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/resources/maps)
+
+convertTileset(
+       SOURCE ${PROJECT_SOURCE_DIR}/resources/for.png
+       DESTINATION ${PROJECT_BINARY_DIR}/resources/imgs/for.bm
+       SIZE 16
+       TARGET ${PROJECT_EXECUTABLE}
+       PALETTE ${PROJECT_BINARY_DIR}/resources/imgs/for.plt)
+
+convertPalette(${PROJECT_EXECUTABLE} ${PROJECT_SOURCE_DIR}/resources/for.gpl ${PROJECT_BINARY_DIR}/resources/imgs/for.plt)
