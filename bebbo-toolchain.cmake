@@ -14,4 +14,3 @@ set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/deps/AmigaCMakeCrossToolchains/m68
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAMIGA -Wall -Wextra -fomit-frame-pointer")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DACE_DEBUG")
