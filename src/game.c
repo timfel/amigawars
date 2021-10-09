@@ -38,6 +38,7 @@ static tBitMap *s_pMapBitmap;
 
 static tBitMap *s_pGoldMineBitmap;
 static tBobNew s_GoldMineBob;
+static tBobNew s_TileCursor;
 
 // palette switching
 static uint16_t s_pMapPalette[COLORS];
@@ -105,7 +106,7 @@ void loadMap(const char* race, uint8_t index) {
                                     TAG_TILEBUFFER_BOUND_TILE_Y, MAP_SIZE,
                                     TAG_TILEBUFFER_TILE_SHIFT, TILE_SHIFT,
                                     TAG_TILEBUFFER_TILESET, s_pMapBitmap,
-                                    TAG_TILEBUFFER_IS_DBLBUF, 0,
+                                    TAG_TILEBUFFER_IS_DBLBUF, 1,
                                     TAG_TILEBUFFER_REDRAW_QUEUE_LENGTH, 6,
                                     TAG_TILEBUFFER_COPLIST_OFFSET_START, tileStartPos,
                                     TAG_TILEBUFFER_COPLIST_OFFSET_BREAK, tileBreakPos,
@@ -126,8 +127,17 @@ void loadMap(const char* race, uint8_t index) {
     tileBufferRedrawAll(s_pMapBuffer);
 }
 
+void initTileCursor(void) {
+    bobNewManagerCreate(s_pMapBuffer->pScroll->pFront, s_pMapBuffer->pScroll->pBack, s_pMapBuffer->pScroll->uwBmAvailHeight);
+
+    bobNewInit(&s_TileCursor, TILE_SIZE, TILE_SIZE, 1, s_pMapBitmap, 0, 0, 0);
+    bobNewSetBitMapOffset(&s_TileCursor, 0x10 << TILE_SHIFT);
+
+    bobNewReallocateBgBuffers();
+}
+
 void loadGoldmine(void) {
-    bobNewManagerCreate(s_pMapBuffer->pScroll->pBack, s_pMapBuffer->pScroll->pBack, s_pMapBuffer->pScroll->uwBmAvailHeight);
+    bobNewManagerCreate(s_pMapBuffer->pScroll->pFront, s_pMapBuffer->pScroll->pBack, s_pMapBuffer->pScroll->uwBmAvailHeight);
 
     s_pGoldMineBitmap = bitmapCreateFromFile("resources/imgs/for/neutral_gold_mine.bm", 0);
     bobNewInit(&s_GoldMineBob, 64, 48, 0, s_pGoldMineBitmap, 0, 120, 120);
@@ -152,7 +162,8 @@ void gameGsCreate(void) {
                          TAG_DONE);
 
     loadMap("orc", 12);
-
+    
+    initTileCursor();
     // loadGoldmine();
 
     // create panel area
@@ -184,48 +195,56 @@ void gameGsCreate(void) {
     systemUnuse();
 }
 
+static tUbCoordYX screenPosToTile(UWORD x, UWORD y) {
+    tUbCoordYX pos;
+    pos.ubX = x >> TILE_SHIFT;
+    pos.ubY = y >> TILE_SHIFT;
+    return pos;
+}
+
 static uint16_t GameCycle = 0;
+static UBYTE SelectedTile = 0x10;
 
 void gameGsLoop(void) {
-    switch (GameCycle % 1) {
-    case 0:
-        // This will loop every frame
-        if (keyCheck(KEY_W)) {
-            cameraMoveBy(s_pMainCamera, 0, -4);
-        }
-        if (keyCheck(KEY_S)) {
-            cameraMoveBy(s_pMainCamera, 0, 4);
-        }
-        if (keyCheck(KEY_A)) {
-            cameraMoveBy(s_pMainCamera, -4, 0);
-        }
-        if (keyCheck(KEY_D)) {
-            cameraMoveBy(s_pMainCamera, 4, 0);
-        }
-        if (keyCheck(KEY_ESCAPE)) {
+    tUwCoordYX mousePos = {.uwX = mouseGetX(MOUSE_PORT_1) & 0xfff0, .uwY = mouseGetY(MOUSE_PORT_1) & 0xfff0};
+
+    if (!(GameCycle % 10)) {
+        if (keyCheck(KEY_UP)) {
+            SelectedTile++;
+            bobNewSetBitMapOffset(&s_TileCursor, SelectedTile << TILE_SHIFT);
+        } else if (keyCheck(KEY_DOWN)) {
+            SelectedTile--;
+            bobNewSetBitMapOffset(&s_TileCursor, SelectedTile << TILE_SHIFT);
+        } else if (keyCheck(KEY_ESCAPE)) {
             gameExit();
-        }
-        if (keyCheck(KEY_C)) {
+        } else if (keyCheck(KEY_C)) {
             copDumpBfr(s_pView->pCopList->pBackBfr);
         }
-        if (mouseGetX(MOUSE_PORT_1) > s_pVpMain->uwWidth - 5) {
-            cameraMoveBy(s_pMainCamera, 1, 0);
-        } else if (mouseGetX(MOUSE_PORT_1) < 5) {
-            cameraMoveBy(s_pMainCamera, -1, 0);
-        } else if (mouseGetY(MOUSE_PORT_1) < 5) {
-            cameraMoveBy(s_pMainCamera, 0, -1);
-        } else if (mouseGetY(MOUSE_PORT_1) > s_pVpMain->uwHeight - 5) {
-            cameraMoveBy(s_pMainCamera, 0, 1);
-        }
+    }
+    if (mouseCheck(MOUSE_PORT_1, MOUSE_LMB)) {
+        tUbCoordYX tile = screenPosToTile(mousePos.uwX, mousePos.uwY);
+        tileBufferSetTile(s_pMapBuffer, tile.ubX, tile.ubY, SelectedTile);
+        bobNewDiscardUndraw();
+    }
+    // This will loop every frame
+    if (keyCheck(KEY_W)) {
+        cameraMoveBy(s_pMainCamera, 0, -4);
+    } else if (keyCheck(KEY_S)) {
+        cameraMoveBy(s_pMainCamera, 0, 4);
+    } else if (keyCheck(KEY_A)) {
+        cameraMoveBy(s_pMainCamera, -4, 0);
+    } else if (keyCheck(KEY_D)) {
+        cameraMoveBy(s_pMainCamera, 4, 0);
     }
 
-    // bobNewBegin(s_pMapBuffer->pScroll->pBack);
-    // if (tileBufferIsTileOnBuffer(s_pMapBuffer, 80 / 16, 80 / 16)) {
-    // bobNewPush(&s_GoldMineBob);
-    // }
-    // bobNewPushingDone();
-    // bobNewProcessNext();
-    // bobNewEnd();
+    tileBufferQueueProcess(s_pMapBuffer);
+
+    bobNewBegin(s_pMapBuffer->pScroll->pBack);
+    s_TileCursor.sPos.ulYX = mousePos.ulYX;
+    bobNewPush(&s_TileCursor);
+    bobNewPushingDone();
+    bobNewProcessNext();
+    bobNewEnd();
 
     viewProcessManagers(s_pView);
     copProcessBlocks();
