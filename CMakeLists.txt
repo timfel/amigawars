@@ -34,6 +34,7 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}
 execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/resources/maps)
 
 convertTileset(
+       INTERLEAVED
        SOURCE ${PROJECT_SOURCE_DIR}/resources/for.png
        DESTINATION ${PROJECT_BINARY_DIR}/resources/imgs/for.bm
        SIZE 16
