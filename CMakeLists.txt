@@ -31,8 +31,6 @@ include(target-definition.cmake)
 
 # resources
 execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/resources/imgs)
-execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/resources/maps)
-
 convertTileset(
        INTERLEAVED
        SOURCE ${PROJECT_SOURCE_DIR}/resources/for.png
@@ -40,5 +38,11 @@ convertTileset(
        SIZE 16
        TARGET ${PROJECT_EXECUTABLE}
        PALETTE ${PROJECT_BINARY_DIR}/resources/imgs/for.plt)
-
 convertPalette(${PROJECT_EXECUTABLE} ${PROJECT_SOURCE_DIR}/resources/for.gpl ${PROJECT_BINARY_DIR}/resources/imgs/for.plt)
+
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/resources/maps)
+add_custom_command(
+       TARGET ${PROJECT_EXECUTABLE} POST_BUILD
+	COMMAND ${CMAKE_COMMAND} ARGS -E copy ${PROJECT_SOURCE_DIR}/resources/maps/game.map ${PROJECT_BINARY_DIR}/resources/maps/game.map
+	COMMAND ${CMAKE_COMMAND} ARGS -E copy ${PROJECT_SOURCE_DIR}/resources/maps/game2.map ${PROJECT_BINARY_DIR}/resources/maps/game2.map
+)
