@@ -219,6 +219,17 @@ void gameGsLoop(void) {
             gameExit();
         } else if (keyCheck(KEY_C)) {
             copDumpBfr(s_pView->pCopList->pBackBfr);
+        } else if (keyCheck(KEY_RETURN)) {
+            const char* mapname = MAPDIR "game.map";
+            tFile *map = fileOpen(mapname, "w");
+            if (!map) {
+                logWrite("ERROR: Cannot open file %s!\n", mapname);
+            } else {
+                fileWrite(map, "for", 3);
+                for (int x = 0; x < MAP_SIZE; x++) {
+                    fileWrite(map, s_pMapBuffer->pTileData[x], MAP_SIZE);
+                }
+            }
         }
     }
     if (mouseCheck(MOUSE_PORT_1, MOUSE_LMB)) {
