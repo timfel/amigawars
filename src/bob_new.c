@@ -102,9 +102,14 @@ void bobNewReallocateBgBuffers(void) {
 	systemUse();
 	logBlockBegin("bobNewReallocateBgBuffers()");
 	s_pQueues[0].pBobs = memAllocFast(sizeof(tBobNew*) * s_ubMaxBobCount);
-	s_pQueues[1].pBobs = memAllocFast(sizeof(tBobNew*) * s_ubMaxBobCount);
 	s_pQueues[0].pBg = bitmapCreate(16, s_uwBgBufferLength, s_ubBpp, BMF_INTERLEAVED);
-	s_pQueues[1].pBg = bitmapCreate(16, s_uwBgBufferLength, s_ubBpp, BMF_INTERLEAVED);
+	if (s_pQueues[0].pDst != s_pQueues[1].pDst) {
+		logWrite("Double buffered bobs\n");
+		s_pQueues[1].pBobs = memAllocFast(sizeof(tBobNew*) * s_ubMaxBobCount);
+		s_pQueues[1].pBg = bitmapCreate(16, s_uwBgBufferLength, s_ubBpp, BMF_INTERLEAVED);
+	} else {
+		logWrite("Single buffered bobs\n");
+	}
 	logWrite(
 		"New bg buffer length: %hu, max bobs: %hhu\n",
 		s_uwBgBufferLength, s_ubMaxBobCount
@@ -357,7 +362,10 @@ void bobNewEnd(void) {
 		blitWait();
 	} while(bobNewProcessNext());
 	s_pQueues[s_ubBufferCurr].ubUndrawCount = s_ubBobsPushed;
-	s_ubBufferCurr = !s_ubBufferCurr;
+	if (s_pQueues[1].pBg) {
+		// double buffered, switch the target queue
+		s_ubBufferCurr = !s_ubBufferCurr;
+	}
 }
 
 void bobNewDiscardUndraw(void) {
