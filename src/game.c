@@ -269,6 +269,8 @@ void gameGsDestroy(void) {
 
     // This will also destroy all associated viewports and viewport managers
     viewDestroy(s_pView);
-
+    bobNewManagerDestroy();
+    bitmapDestroy(s_pSpearthrower);
+    bitmapDestroy(s_pSpearthrower_mask);
     bitmapDestroy(s_pMapBitmap);
 }
