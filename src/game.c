@@ -40,6 +40,10 @@ static tBitMap *s_pGoldMineBitmap;
 static tBobNew s_GoldMineBob;
 static tBobNew s_TileCursor;
 
+static tBobNew s_Spearthrower;
+static tBitMap *s_pSpearthrower;
+static tBitMap *s_pSpearthrower_mask;
+
 // palette switching
 static uint16_t s_pMapPalette[COLORS];
 static uint16_t s_pPanelPalette[COLORS];
@@ -106,7 +110,7 @@ void loadMap(const char* name) {
                                     TAG_TILEBUFFER_BOUND_TILE_Y, MAP_SIZE,
                                     TAG_TILEBUFFER_TILE_SHIFT, TILE_SHIFT,
                                     TAG_TILEBUFFER_TILESET, s_pMapBitmap,
-                                    TAG_TILEBUFFER_IS_DBLBUF, 1,
+                                    TAG_TILEBUFFER_IS_DBLBUF, 0,
                                     TAG_TILEBUFFER_REDRAW_QUEUE_LENGTH, 6,
                                     TAG_TILEBUFFER_COPLIST_OFFSET_START, tileStartPos,
                                     TAG_TILEBUFFER_COPLIST_OFFSET_BREAK, tileBreakPos,
@@ -123,21 +127,15 @@ void loadMap(const char* name) {
     tileBufferRedrawAll(s_pMapBuffer);
 }
 
-void initTileCursor(void) {
+void initBobs(void) {
     bobNewManagerCreate(s_pMapBuffer->pScroll->pFront, s_pMapBuffer->pScroll->pBack, s_pMapBuffer->pScroll->uwBmAvailHeight);
 
     bobNewInit(&s_TileCursor, TILE_SIZE, TILE_SIZE, 1, s_pMapBitmap, 0, 0, 0);
     bobNewSetBitMapOffset(&s_TileCursor, 0x10 << TILE_SHIFT);
 
-    bobNewReallocateBgBuffers();
-}
-
-void loadGoldmine(void) {
-    bobNewManagerCreate(s_pMapBuffer->pScroll->pFront, s_pMapBuffer->pScroll->pBack, s_pMapBuffer->pScroll->uwBmAvailHeight);
-
-    s_pGoldMineBitmap = bitmapCreateFromFile("resources/imgs/for/neutral_gold_mine.bm", 0);
-    bobNewInit(&s_GoldMineBob, 64, 48, 0, s_pGoldMineBitmap, 0, 120, 120);
-    bobNewSetBitMapOffset(&s_GoldMineBob, 0);
+    s_pSpearthrower = bitmapCreateFromFile("resources/units/spearthrower.bm", 0);
+    s_pSpearthrower_mask = bitmapCreateFromFile("resources/units/spearthrower.msk", 0);
+    bobNewInit(&s_Spearthrower, TILE_SIZE * 3, TILE_SIZE * 3, 1, s_pSpearthrower, s_pSpearthrower_mask, 0, 0);
 
     bobNewReallocateBgBuffers();
 }
@@ -159,7 +157,7 @@ void gameGsCreate(void) {
 
     loadMap("game2");
     
-    initTileCursor();
+    initBobs();
     // loadGoldmine();
 
     // create panel area
@@ -183,6 +181,7 @@ void gameGsCreate(void) {
     s_pPanelBuffer = simpleBufferCreate(0,
                                         TAG_SIMPLEBUFFER_VPORT, s_pVpPanel,
                                         TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR | BMF_INTERLEAVED,
+                                        TAG_SIMPLEBUFFER_IS_DBLBUF, 0,
                                         TAG_SIMPLEBUFFER_COPLIST_OFFSET, simplePos,
                                         TAG_END);
     // bitmapLoadFromFile(s_pPanelBuffer->pFront, "resources/human_panel/graphics/ui/human/panel_2.bm", 48, 0);
@@ -249,6 +248,9 @@ void gameGsLoop(void) {
     bobNewBegin(s_pMapBuffer->pScroll->pBack);
     s_TileCursor.sPos.ulYX = mousePos.ulYX;
     bobNewPush(&s_TileCursor);
+
+    bobNewPush(&s_Spearthrower);
+
     bobNewPushingDone();
     bobNewProcessNext();
     bobNewEnd();
