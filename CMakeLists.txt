@@ -46,3 +46,14 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND} ARGS -E copy ${PROJECT_SOURCE_DIR}/resources/maps/game.map ${PROJECT_BINARY_DIR}/resources/maps/game.map
 	COMMAND ${CMAKE_COMMAND} ARGS -E copy ${PROJECT_SOURCE_DIR}/resources/maps/game2.map ${PROJECT_BINARY_DIR}/resources/maps/game2.map
 )
+
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/resources/units)
+convertBitmaps(
+       INTERLEAVED
+       TARGET ${PROJECT_EXECUTABLE}
+       PALETTE ${PROJECT_BINARY_DIR}/resources/imgs/for.plt
+       MASK_COLOR "#ff55ff"
+       SOURCES ${PROJECT_SOURCE_DIR}/resources/spearthrower.png
+       DESTINATIONS ${PROJECT_BINARY_DIR}/resources/units/spearthrower.bm
+       MASKS ${PROJECT_BINARY_DIR}/resources/units/spearthrower.msk
+)

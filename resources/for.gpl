@@ -1,8 +1,8 @@
 GIMP Palette
-Name: for2.gpl
+Name: for.gpl
 Columns: 16
 #
-255 85 255	Untitled
+0 0 0	Untitled
 34 34 0	Untitled
 85 17 0	Untitled
 85 51 34	Untitled
@@ -16,7 +16,7 @@ Columns: 16
 238 102 17	Untitled
 153 136 136	Untitled
 170 153 153	Untitled
-0 0 0	Untitled
+255 85 255	Untitled
 204 204 187	Untitled
 17 68 0	Untitled
 187 153 68	Untitled
