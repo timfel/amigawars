@@ -135,7 +135,7 @@ void initBobs(void) {
 
     s_pSpearthrower = bitmapCreateFromFile("resources/units/spearthrower.bm", 0);
     s_pSpearthrower_mask = bitmapCreateFromFile("resources/units/spearthrower.msk", 0);
-    bobNewInit(&s_Spearthrower, TILE_SIZE * 3, TILE_SIZE * 3, 1, s_pSpearthrower, s_pSpearthrower_mask, 0, 0);
+    bobNewInit(&s_Spearthrower, 32, 32, 1, s_pSpearthrower, s_pSpearthrower_mask, 0, 0);
 
     bobNewReallocateBgBuffers();
 }
@@ -226,10 +226,17 @@ void gameGsLoop(void) {
                 }
             }
         }
+        // XXX: not used in single buffered mode, I  just reuse that
+        tUwCoordYX * scratchData = &s_Spearthrower.pOldPositions[1];
+        UWORD lastFrame = scratchData->uwY;
+        lastFrame = (lastFrame + 32) % 160;
+        scratchData->uwY = lastFrame;
+        bobNewSetBitMapOffset(&s_Spearthrower, lastFrame);
     }
     if (mouseCheck(MOUSE_PORT_1, MOUSE_LMB)) {
         tUbCoordYX tile = screenPosToTile(mousePos.uwX, mousePos.uwY);
         tileBufferSetTile(s_pMapBuffer, tile.ubX, tile.ubY, SelectedTile);
+        tileBufferQueueProcess(s_pMapBuffer);
         bobNewDiscardUndraw();
     }
     // This will loop every frame
@@ -243,16 +250,11 @@ void gameGsLoop(void) {
         cameraMoveBy(s_pMainCamera, 4, 0);
     }
 
-    tileBufferQueueProcess(s_pMapBuffer);
-
     bobNewBegin(s_pMapBuffer->pScroll->pBack);
-    s_TileCursor.sPos.ulYX = mousePos.ulYX;
-    bobNewPush(&s_TileCursor);
-
     bobNewPush(&s_Spearthrower);
 
-    bobNewPushingDone();
-    bobNewProcessNext();
+    s_TileCursor.sPos.ulYX = mousePos.ulYX;
+    bobNewPush(&s_TileCursor);
     bobNewEnd();
 
     viewProcessManagers(s_pView);
