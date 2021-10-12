@@ -21,11 +21,6 @@
 #include <ace/managers/blit.h>
 #include <stdint.h>
 
-
-#define TILE_SHIFT 4
-#define TILE_SIZE (1 << TILE_SHIFT)
-#define MAP_SIZE 64
-
 #define BPP 5
 #define COLORS (1 << BPP)
 
@@ -181,45 +176,79 @@ static tUbCoordYX screenPosToTile(UWORD x, UWORD y) {
     return pos;
 }
 
+enum mode {
+    game,
+    edit
+};
 static uint16_t GameCycle = 0;
+static UBYTE s_Mode = game;
+
+// editor statics
 static UBYTE SelectedTile = 0x10;
+
+// game statics
+static Unit *s_pSelectedUnit = NULL;
 
 void gameGsLoop(void) {
     tUwCoordYX mousePos = {.uwX = mouseGetX(MOUSE_PORT_1) & 0xfff0, .uwY = mouseGetY(MOUSE_PORT_1) & 0xfff0};
 
-    if (!(GameCycle % 10)) {
-        if (keyCheck(KEY_UP)) {
-            SelectedTile++;
-            bobNewSetBitMapOffset(&s_TileCursor, SelectedTile << TILE_SHIFT);
-        } else if (keyCheck(KEY_DOWN)) {
-            SelectedTile--;
-            bobNewSetBitMapOffset(&s_TileCursor, SelectedTile << TILE_SHIFT);
-        } else if (keyCheck(KEY_ESCAPE)) {
-            gameExit();
-        } else if (keyCheck(KEY_C)) {
-            copDumpBfr(s_pView->pCopList->pBackBfr);
-        } else if (keyCheck(KEY_RETURN)) {
-            const char* mapname = MAPDIR "game.map";
-            tFile *map = fileOpen(mapname, "w");
-            if (!map) {
-                logWrite("ERROR: Cannot open file %s!\n", mapname);
-            } else {
-                fileWrite(map, "for", 3);
-                for (int x = 0; x < MAP_SIZE; x++) {
-                    fileWrite(map, s_pMapBuffer->pTileData[x], MAP_SIZE);
+    if (s_Mode == edit) {
+        if (!(GameCycle % 10)) {
+            if (keyCheck(KEY_UP)) {
+                SelectedTile++;
+                bobNewSetBitMapOffset(&s_TileCursor, SelectedTile << TILE_SHIFT);
+            } else if (keyCheck(KEY_DOWN)) {
+                SelectedTile--;
+                bobNewSetBitMapOffset(&s_TileCursor, SelectedTile << TILE_SHIFT);
+            } else if (keyCheck(KEY_RETURN)) {
+                const char* mapname = MAPDIR "game.map";
+                tFile *map = fileOpen(mapname, "w");
+                if (!map) {
+                    logWrite("ERROR: Cannot open file %s!\n", mapname);
+                } else {
+                    fileWrite(map, "for", 3);
+                    for (int x = 0; x < MAP_SIZE; x++) {
+                        fileWrite(map, s_pMapBuffer->pTileData[x], MAP_SIZE);
+                    }
                 }
             }
+            unitSetFrame(s_pSpearman, unitGetFrame(s_pSpearman) ? 0 : 32);
         }
-        unitSetFrame(s_pSpearman, unitGetFrame(s_pSpearman) ? 0 : 32);
+        if (mouseCheck(MOUSE_PORT_1, MOUSE_LMB)) {
+            tUbCoordYX tile = screenPosToTile(mousePos.uwX, mousePos.uwY);
+            tileBufferSetTile(s_pMapBuffer, tile.ubX, tile.ubY, SelectedTile);
+            tileBufferQueueProcess(s_pMapBuffer);
+            bobNewDiscardUndraw();
+        }
+    } else {
+        // mode == game
+        if (mouseCheck(MOUSE_PORT_1, MOUSE_LMB)) {
+            tUbCoordYX tile = screenPosToTile(mousePos.uwX, mousePos.uwY);
+            for (UBYTE i = 0; i < MAX_UNITS; i++) {
+                Unit *unit = s_pUnitList[i];
+                if (unit != NULL) {
+                    tUbCoordYX loc = unitGetTilePosition(unit);
+                    if (loc.uwYX == tile.uwYX) {
+                        s_pSelectedUnit = unit;
+                        break;
+                    }
+                }
+            }
+        } else if (s_pSelectedUnit && mouseCheck(MOUSE_PORT_1, MOUSE_RMB)) {
+            unitSetTilePosition(s_pSelectedUnit, screenPosToTile(mousePos.uwX, mousePos.uwY));
+        }
     }
-    if (mouseCheck(MOUSE_PORT_1, MOUSE_LMB)) {
-        tUbCoordYX tile = screenPosToTile(mousePos.uwX, mousePos.uwY);
-        tileBufferSetTile(s_pMapBuffer, tile.ubX, tile.ubY, SelectedTile);
-        tileBufferQueueProcess(s_pMapBuffer);
-        bobNewDiscardUndraw();
-    }
+
     // This will loop every frame
-    if (keyCheck(KEY_W)) {
+    if (keyCheck(KEY_ESCAPE)) {
+        gameExit();
+    } else if (keyCheck(KEY_C)) {
+        copDumpBfr(s_pView->pCopList->pBackBfr);
+    } else if (keyCheck(KEY_E)) {
+        s_Mode = edit;
+    } else if (keyCheck(KEY_G)) {
+        s_Mode = game;
+    } else if (keyCheck(KEY_W)) {
         cameraMoveBy(s_pMainCamera, 0, -4);
     } else if (keyCheck(KEY_S)) {
         cameraMoveBy(s_pMainCamera, 0, 4);

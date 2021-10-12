@@ -26,16 +26,18 @@ union freeBlock {
 };
 _Static_assert(sizeof(union freeBlock) == sizeof(Unit), "freeBlock is not Unit size");
 
-#define MAX_UNITS 200
 // with 10 units per frame, we need 20 frames to get through all units
 // so on NTSC, we'd handle each unit 3 times per second. This should give
 // generally nice animation and speed
 #define UNITS_PER_FRAME 10
 
 static union freeBlock *s_arena;
+Unit **s_pUnitList;
 
 void unitManagerCreate(void) {
     s_arena = memAllocFastClear(sizeof(union freeBlock) * MAX_UNITS);
+    s_pUnitList = memAllocFastClear(sizeof(Unit *) * MAX_UNITS);
+
     for (UWORD i = 0; i < MAX_UNITS; i++) {
         s_arena[i].next = &s_arena[(i + 1) % MAX_UNITS];
     }
@@ -58,6 +60,7 @@ void unitManagerDestroy(void) {
         }
     }
     memFree(s_arena, sizeof(union freeBlock) * MAX_UNITS);
+    memFree(s_pUnitList, sizeof(Unit) * MAX_UNITS);
 }
 
 // void processUnits(void *unitManager) {
@@ -72,20 +75,23 @@ void unitManagerDestroy(void) {
 
 Unit * unitNew(UnitType *type) {
     Unit *unit = &s_arena->next->unit;
-    if ((void*)unit == (void*)s_arena) {
-        // no more free space, error!
+    ULONG idx = ((ULONG)unit - (ULONG)s_arena) / sizeof(union freeBlock);
+    if (idx == 0) {
+        // TODO: no more free space!!
         return NULL;
-    } else {
-        s_arena->next = s_arena->next->next;
-        bobNewInit(&unit->bob, 32, 32, 1, type->spritesheet, type->mask, 50, 50);
-        unitSetFrame(unit, 0);
-        return unit;
     }
+    s_arena->next = s_arena->next->next;
+    bobNewInit(&unit->bob, 32, 32, 1, type->spritesheet, type->mask, 0, 0);
+    unitSetFrame(unit, 0);
+    s_pUnitList[idx] = unit;
+    return unit;
 }
 
 void unitDelete(Unit *unit) {
     union freeBlock *curFreeBlk = s_arena->next;
     union freeBlock *newFreeBlk = (union freeBlock *)unit;
+    ULONG idx = ((ULONG)unit - (ULONG)s_arena) / sizeof(union freeBlock);
+    s_pUnitList[idx] = NULL;
     // TODO: track use after delete
     s_arena->next = newFreeBlk;
     newFreeBlk->next = curFreeBlk;

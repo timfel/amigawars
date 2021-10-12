@@ -3,6 +3,10 @@
 
 #include "ace/types.h"
 
+#define TILE_SIZE 16
+#define TILE_SHIFT 4
+#define MAP_SIZE 64
+
 /*
  * 
  * dbu_ ____ tttt tttt - (d)iscovered, 

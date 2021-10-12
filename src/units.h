@@ -2,6 +2,7 @@
 #define UNITS_H
 
 #include "bob_new.h"
+#include "map.h"
 
 #include <ace/utils/bitmap.h>
 #include <ace/utils/file.h>
@@ -41,10 +42,14 @@ enum UnitTypes {
     cleric,
     necrolyte,
     conjurer,
-    warlock
+    warlock,
+    spider,
+    daemon,
+    elemental,
+    ogre,
+    slime,
+    thief
 };
-
-extern UnitType UnitTypes[];
 
 typedef struct {
     union {
@@ -84,9 +89,23 @@ typedef struct {
     tBobNew bob;
 } Unit;
 
-#define UNIT_SIZE_SHIFT 6
+#define UNIT_SIZE 32
+#define UNIT_SIZE_SHIFT 5
+
+/* Units are centered on a 2x2 tilegrid. So to position a unit on a tile, we subtract 8px */
+#define UNIT_POSITION_OFFSET 8
+
 // _Static_assert(sizeof(Unit) == (1 << UNIT_SIZE_SHIFT) >> 3, "unit struct is not 4 words");
 // _Static_assert(sizeof(Unit) == 4 * sizeof(UWORD), "unit struct is not 4 words");
+
+/* The global list of unit types */
+extern UnitType UnitTypes[];
+
+/* The maximum number of units the game will allocate memory for. */
+#define MAX_UNITS 200
+
+/* The list of all units. Inactive unit slots are NULL. */
+extern Unit **s_pUnitList;
 
 void unitManagerCreate(void);
 
@@ -96,8 +115,18 @@ Unit * unitNew(UnitType *);
 
 void unitDelete(Unit *);
 
-static inline tUwCoordYX * unitLocation(Unit *self) {
-    return &self->bob.sPos;
+_Static_assert(MAP_SIZE * TILE_SIZE < 0xfff, "map is small enough to fit locations in bytes");
+static inline tUbCoordYX unitGetTilePosition(Unit *self) {
+    tUbCoordYX loc;
+    tUwCoordYX bobLoc = self->bob.sPos;
+    loc.ubX = (bobLoc.uwX >> TILE_SHIFT) + 1;
+    loc.ubY = (bobLoc.uwY >> TILE_SHIFT) + 1;
+    return loc;
+}
+
+static inline void unitSetTilePosition(Unit *self, tUbCoordYX pos) {
+    self->bob.sPos.uwX = (pos.ubX << TILE_SHIFT) - 8;
+    self->bob.sPos.uwY = (pos.ubY << TILE_SHIFT) - 8;
 }
 
 static inline void unitDraw(Unit *self) {

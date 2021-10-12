@@ -46,9 +46,9 @@ void actionMove(Unit *unit) {
     // calculate next position
     UBYTE targetX = (data & moveTargetXMask) >> moveTargetXShift;
     UBYTE targetY = (data & moveTargetYMask) >> moveTargetYShift;
-    tUwCoordYX *loc = unitLocation(unit);
-    UBYTE currentX = loc->uwX;
-    UBYTE currentY = loc->uwY;
+    tUbCoordYX loc = unitGetTilePosition(unit);
+    UBYTE currentX = loc.ubX;
+    UBYTE currentY = loc.ubY;
     if (currentX == targetX && currentY == targetY) {
         hdr.currentAction = ActionStill;
     }
