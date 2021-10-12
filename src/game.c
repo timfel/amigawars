@@ -121,9 +121,6 @@ void initBobs(void) {
     unitManagerCreate();
     s_pSpearman = unitNew(&UnitTypes[spearman]);
 
-    tUwCoordYX * scratchData = &s_pSpearman->bob.pOldPositions[1];
-    scratchData->uwY = 0;
-
     bobNewReallocateBgBuffers();
 }
 
@@ -213,12 +210,7 @@ void gameGsLoop(void) {
                 }
             }
         }
-        // XXX: not used in single buffered mode, I  just reuse that
-        tUwCoordYX * scratchData = &s_pSpearman->bob.pOldPositions[1];
-        UWORD lastFrame = scratchData->uwY;
-        lastFrame = (lastFrame + 32) % 64;
-        scratchData->uwY = lastFrame;
-        bobNewSetBitMapOffset(&s_pSpearman->bob, lastFrame);
+        unitSetFrame(s_pSpearman, unitGetFrame(s_pSpearman) ? 0 : 32);
     }
     if (mouseCheck(MOUSE_PORT_1, MOUSE_LMB)) {
         tUbCoordYX tile = screenPosToTile(mousePos.uwX, mousePos.uwY);
@@ -238,7 +230,8 @@ void gameGsLoop(void) {
     }
 
     bobNewBegin(s_pMapBuffer->pScroll->pBack);
-    bobNewPush(&s_pSpearman->bob);
+
+    unitDraw(s_pSpearman);
 
     s_TileCursor.sPos.ulYX = mousePos.ulYX;
     bobNewPush(&s_TileCursor);

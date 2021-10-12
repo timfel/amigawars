@@ -78,6 +78,7 @@ Unit * unitNew(UnitType *type) {
     } else {
         s_arena->next = s_arena->next->next;
         bobNewInit(&unit->bob, 32, 32, 1, type->spritesheet, type->mask, 50, 50);
+        unitSetFrame(unit, 0);
         return unit;
     }
 }

@@ -100,4 +100,21 @@ static inline tUwCoordYX * unitLocation(Unit *self) {
     return &self->bob.sPos;
 }
 
+static inline void unitDraw(Unit *self) {
+    bobNewPush(&self->bob);
+}
+
+static inline void unitSetFrame(Unit *self, UBYTE ubFrame) {
+    // TODO: guard that we're not double buffered
+    // When we're single buffered, we can re-use some memory in the bob
+    self->bob.pOldPositions[1].uwY = ubFrame;
+    bobNewSetBitMapOffset(&self->bob, ubFrame);
+}
+
+static inline UBYTE unitGetFrame(Unit *self) {
+    // TODO: guard that we're not double buffered
+    // When we're single buffered, we can re-use some memory in the bob
+    return self->bob.pOldPositions[1].uwY;
+}
+
 #endif
