@@ -4,15 +4,15 @@
 #include "units.h"
 #include "ace/types.h"
 
-typedef void (*action)(struct unit *);
+typedef void (*action)(Unit *);
 
-void actionStill(struct unit *);
-void actionMove(struct unit *);
-void actionAttackMove(struct unit *);
-void actionAttackTarget(struct unit *);
-void actionHarvest(struct unit *);
-void actionCast(struct unit *);
-void actionDie(struct unit *);
+void actionStill(Unit *);
+void actionMove(Unit *);
+void actionAttackMove(Unit *);
+void actionAttackTarget(Unit *);
+void actionHarvest(Unit *);
+void actionCast(Unit *);
+void actionDie(Unit *);
 
 typedef enum ActionTypes {
     ActionStill,

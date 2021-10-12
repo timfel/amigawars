@@ -1,6 +1,7 @@
 #include "game.h"
 #include "bob_new.h"
 #include "map.h"
+#include "units.h"
 #include <ace/managers/copper.h>
 #include <ace/managers/log.h>
 #include <ace/managers/mouse.h>
@@ -36,17 +37,13 @@ static tTileBufferManager *s_pMapBuffer;
 static tCameraManager *s_pMainCamera;
 static tBitMap *s_pMapBitmap;
 
-static tBitMap *s_pGoldMineBitmap;
-static tBobNew s_GoldMineBob;
 static tBobNew s_TileCursor;
 
-static tBobNew s_Spearthrower;
-static tBitMap *s_pSpearthrower;
-static tBitMap *s_pSpearthrower_mask;
+static Unit *s_pSpearman;
 
 // palette switching
 static uint16_t s_pMapPalette[COLORS];
-static uint16_t s_pPanelPalette[COLORS];
+// static uint16_t s_pPanelPalette[COLORS];
 
 #define IMGDIR "resources/imgs/"
 #define MAPDIR "resources/maps/"
@@ -54,17 +51,6 @@ static uint16_t s_pPanelPalette[COLORS];
 
 #define MAP_HEIGHT 200
 #define PANEL_HEIGHT 48
-
-
-/*
- * struct map {
- *     tBitMap *terrain;
- *     tTileBufferManager *mapBuffer;
- * };
- */
-
-static void drawBuildingOnTile(UWORD uwTileX, UWORD uwTileY, tBitMap *pBitMap, UWORD uwBitMapX, UWORD uwBitMapY) {
-}
 
 void loadMap(const char* name) {
     char* mapname = MAPDIR LONGEST_MAPNAME;
@@ -114,7 +100,6 @@ void loadMap(const char* name) {
                                     TAG_TILEBUFFER_REDRAW_QUEUE_LENGTH, 6,
                                     TAG_TILEBUFFER_COPLIST_OFFSET_START, tileStartPos,
                                     TAG_TILEBUFFER_COPLIST_OFFSET_BREAK, tileBreakPos,
-                                    TAG_TILEBUFFER_CALLBACK_TILE_DRAW, drawBuildingOnTile,
                                     TAG_END);
     s_pMainCamera = s_pMapBuffer->pCamera;
     cameraSetCoord(s_pMainCamera, 0, 0);
@@ -133,9 +118,11 @@ void initBobs(void) {
     bobNewInit(&s_TileCursor, TILE_SIZE, TILE_SIZE, 1, s_pMapBitmap, 0, 0, 0);
     bobNewSetBitMapOffset(&s_TileCursor, 0x10 << TILE_SHIFT);
 
-    s_pSpearthrower = bitmapCreateFromFile("resources/units/spearthrower.bm", 0);
-    s_pSpearthrower_mask = bitmapCreateFromFile("resources/units/spearthrower.msk", 0);
-    bobNewInit(&s_Spearthrower, 32, 32, 1, s_pSpearthrower, s_pSpearthrower_mask, 0, 0);
+    unitManagerCreate();
+    s_pSpearman = unitNew(&UnitTypes[spearman]);
+
+    tUwCoordYX * scratchData = &s_pSpearman->bob.pOldPositions[1];
+    scratchData->uwY = 0;
 
     bobNewReallocateBgBuffers();
 }
@@ -227,11 +214,11 @@ void gameGsLoop(void) {
             }
         }
         // XXX: not used in single buffered mode, I  just reuse that
-        tUwCoordYX * scratchData = &s_Spearthrower.pOldPositions[1];
+        tUwCoordYX * scratchData = &s_pSpearman->bob.pOldPositions[1];
         UWORD lastFrame = scratchData->uwY;
-        lastFrame = (lastFrame + 32) % 160;
+        lastFrame = (lastFrame + 32) % 64;
         scratchData->uwY = lastFrame;
-        bobNewSetBitMapOffset(&s_Spearthrower, lastFrame);
+        bobNewSetBitMapOffset(&s_pSpearman->bob, lastFrame);
     }
     if (mouseCheck(MOUSE_PORT_1, MOUSE_LMB)) {
         tUbCoordYX tile = screenPosToTile(mousePos.uwX, mousePos.uwY);
@@ -251,7 +238,7 @@ void gameGsLoop(void) {
     }
 
     bobNewBegin(s_pMapBuffer->pScroll->pBack);
-    bobNewPush(&s_Spearthrower);
+    bobNewPush(&s_pSpearman->bob);
 
     s_TileCursor.sPos.ulYX = mousePos.ulYX;
     bobNewPush(&s_TileCursor);
@@ -269,8 +256,8 @@ void gameGsDestroy(void) {
 
     // This will also destroy all associated viewports and viewport managers
     viewDestroy(s_pView);
+    unitDelete(s_pSpearman);
+    unitManagerDestroy();
     bobNewManagerDestroy();
-    bitmapDestroy(s_pSpearthrower);
-    bitmapDestroy(s_pSpearthrower_mask);
     bitmapDestroy(s_pMapBitmap);
 }

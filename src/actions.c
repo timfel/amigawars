@@ -10,7 +10,7 @@ action Actions[] = {
     actionDie
 };
 
-void actionStill(struct unit  __attribute__((__unused__)) *unit) {
+void actionStill(Unit  __attribute__((__unused__)) *unit) {
     return;
 };
 
@@ -20,12 +20,12 @@ void actionStill(struct unit  __attribute__((__unused__)) *unit) {
 #define moveTargetXShift 10
 #define moveTargetYShift 4
 #define moveCounterShift 0
-void actionMove(struct unit *unit) {
+void actionMove(Unit *unit) {
     UWORD data = unit->actionData;
     UBYTE counter = (data & moveCounterMask) >> moveCounterShift;
 
-    struct unitHeader hdr = unit->header;
-    struct unitType type = UnitTypes[hdr.type];
+    UnitHeader hdr = unit->header;
+    UnitType type = UnitTypes[hdr.type];
 
     // not moving in this step
     if (counter > type.speed) {
@@ -46,9 +46,9 @@ void actionMove(struct unit *unit) {
     // calculate next position
     UBYTE targetX = (data & moveTargetXMask) >> moveTargetXShift;
     UBYTE targetY = (data & moveTargetYMask) >> moveTargetYShift;
-    struct unitLocation loc = unit->location;
-    UBYTE currentX = loc.x;
-    UBYTE currentY = loc.y;
+    tUwCoordYX *loc = unitLocation(unit);
+    UBYTE currentX = loc->uwX;
+    UBYTE currentY = loc->uwY;
     if (currentX == targetX && currentY == targetY) {
         hdr.currentAction = ActionStill;
     }
@@ -56,22 +56,22 @@ void actionMove(struct unit *unit) {
     BYTE dirY = targetY - currentY;
 };
 
-void actionAttackMove(struct unit  __attribute__((__unused__)) *unit) {
+void actionAttackMove(Unit  __attribute__((__unused__)) *unit) {
     return;
 };
 
-void actionAttackTarget(struct unit  __attribute__((__unused__)) *unit) {
+void actionAttackTarget(Unit  __attribute__((__unused__)) *unit) {
     return;
 };
 
-void actionHarvest(struct unit  __attribute__((__unused__)) *unit) {
+void actionHarvest(Unit  __attribute__((__unused__)) *unit) {
     return;
 };
 
-void actionCast(struct unit  __attribute__((__unused__)) *unit) {
+void actionCast(Unit  __attribute__((__unused__)) *unit) {
     return;
 };
 
-void actionDie(struct unit  __attribute__((__unused__)) *unit) {
+void actionDie(Unit  __attribute__((__unused__)) *unit) {
     return;
 };
