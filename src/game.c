@@ -169,7 +169,7 @@ void gameGsCreate(void) {
     systemUnuse();
 }
 
-static tUbCoordYX screenPosToTile(UWORD x, UWORD y) {
+static inline tUbCoordYX screenPosToTile(UWORD x, UWORD y) {
     tUbCoordYX pos;
     pos.ubX = x >> TILE_SHIFT;
     pos.ubY = y >> TILE_SHIFT;
