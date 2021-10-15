@@ -4,26 +4,7 @@
 #include "units.h"
 #include "ace/types.h"
 
-typedef void (*action)(Unit *);
-
-void actionStill(Unit *);
-void actionMove(Unit *);
-void actionAttackMove(Unit *);
-void actionAttackTarget(Unit *);
-void actionHarvest(Unit *);
-void actionCast(Unit *);
-void actionDie(Unit *);
-
-typedef enum ActionTypes {
-    ActionStill,
-    ActionMove,
-    ActionAttackMove,
-    ActionAttackTarget,
-    ActionHarvest,
-    ActionCast,
-    ActionDie
-} ActionTypes;
-
-extern action Actions[];
+void actionDo(Unit *unit);
+void actionMoveTo(Unit *unit, tUbCoordYX goal);
 
 #endif

@@ -73,7 +73,8 @@ void unitManagerDestroy(void) {
 //     }
 // }
 
-Unit * unitNew(UnitType *type) {
+Unit * unitNew(UBYTE typeIdx) {
+    UnitType *type = &UnitTypes[typeIdx];
     Unit *unit = &s_arena->next->unit;
     ULONG idx = ((ULONG)unit - (ULONG)s_arena) / sizeof(union freeBlock);
     if (idx == 0) {
@@ -83,6 +84,7 @@ Unit * unitNew(UnitType *type) {
     s_arena->next = s_arena->next->next;
     bobNewInit(&unit->bob, 32, 32, 1, type->spritesheet, type->mask, 0, 0);
     unitSetFrame(unit, 0);
+    unit->type = typeIdx;
     s_pUnitList[idx] = unit;
     return unit;
 }

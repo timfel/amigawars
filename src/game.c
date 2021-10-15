@@ -2,6 +2,7 @@
 #include "bob_new.h"
 #include "map.h"
 #include "units.h"
+#include "actions.h"
 #include <ace/managers/copper.h>
 #include <ace/managers/log.h>
 #include <ace/managers/mouse.h>
@@ -91,7 +92,7 @@ void loadMap(const char* name) {
                                     TAG_TILEBUFFER_BOUND_TILE_Y, MAP_SIZE,
                                     TAG_TILEBUFFER_TILE_SHIFT, TILE_SHIFT,
                                     TAG_TILEBUFFER_TILESET, s_pMapBitmap,
-                                    TAG_TILEBUFFER_IS_DBLBUF, 0,
+                                    TAG_TILEBUFFER_IS_DBLBUF, 1,
                                     TAG_TILEBUFFER_REDRAW_QUEUE_LENGTH, 6,
                                     TAG_TILEBUFFER_COPLIST_OFFSET_START, tileStartPos,
                                     TAG_TILEBUFFER_COPLIST_OFFSET_BREAK, tileBreakPos,
@@ -114,7 +115,7 @@ void initBobs(void) {
     bobNewSetBitMapOffset(&s_TileCursor, 0x10 << TILE_SHIFT);
 
     unitManagerCreate();
-    s_pSpearman = unitNew(&UnitTypes[spearman]);
+    s_pSpearman = unitNew(spearman);
 
     bobNewReallocateBgBuffers();
 }
@@ -188,6 +189,7 @@ static UBYTE SelectedTile = 0x10;
 
 // game statics
 static Unit *s_pSelectedUnit = NULL;
+static UBYTE s_ubCurrentlyHandledUnit = 0;
 
 void gameGsLoop(void) {
     tUwCoordYX mousePos = {.uwX = mouseGetX(MOUSE_PORT_1) & 0xfff0, .uwY = mouseGetY(MOUSE_PORT_1) & 0xfff0};
@@ -212,7 +214,6 @@ void gameGsLoop(void) {
                     }
                 }
             }
-            unitSetFrame(s_pSpearman, unitGetFrame(s_pSpearman) ? 0 : 32);
         }
         if (mouseCheck(MOUSE_PORT_1, MOUSE_LMB)) {
             tUbCoordYX tile = screenPosToTile(mousePos.uwX, mousePos.uwY);
@@ -235,7 +236,7 @@ void gameGsLoop(void) {
                 }
             }
         } else if (s_pSelectedUnit && mouseCheck(MOUSE_PORT_1, MOUSE_RMB)) {
-            unitSetTilePosition(s_pSelectedUnit, screenPosToTile(mousePos.uwX, mousePos.uwY));
+            actionMoveTo(s_pSelectedUnit, screenPosToTile(mousePos.uwX, mousePos.uwY));
         }
     }
 
@@ -258,9 +259,28 @@ void gameGsLoop(void) {
         cameraMoveBy(s_pMainCamera, 4, 0);
     }
 
-    bobNewBegin(s_pMapBuffer->pScroll->pBack);
+    UBYTE ubNextStop = s_ubCurrentlyHandledUnit + 20;
+    for (; s_ubCurrentlyHandledUnit < ubNextStop; s_ubCurrentlyHandledUnit++) {
+        Unit *unit = s_pUnitList[s_ubCurrentlyHandledUnit];
+        if (unit) {
+            actionDo(unit);
+        }
+    }
+    if (ubNextStop >= MAX_UNITS) {
+        s_ubCurrentlyHandledUnit = 0;
+    }
 
-    unitDraw(s_pSpearman);
+    bobNewBegin(s_pMapBuffer->pScroll->pBack);
+    
+    for (UBYTE i = 0; i < MAX_UNITS; i++) {
+        Unit *unit = s_pUnitList[i];
+        if (unit != NULL) {
+            tUbCoordYX loc = unitGetTilePosition(unit);
+            if (tileBufferIsTileOnBuffer(s_pMapBuffer, loc.ubX, loc.ubY)) {
+                unitDraw(unit);
+            }
+        }
+    }
 
     s_TileCursor.sPos.ulYX = mousePos.ulYX;
     bobNewPush(&s_TileCursor);
