@@ -11,7 +11,8 @@ enum ActionTypes {
 };
 
 void actionMoveTo(Unit *unit, tUbCoordYX goal) {
-    unit->uwActionDataA = goal.uwYX;
+    unit->uwActionDataA = ((UWORD)goal.ubX << TILE_SHIFT) - UNIT_POSITION_OFFSET;
+    unit->uwActionDataB = ((UWORD)goal.ubY << TILE_SHIFT) - UNIT_POSITION_OFFSET;
     unit->action = ActionMove;
 }
 
@@ -22,16 +23,11 @@ void actionMoveTo(Unit *unit, tUbCoordYX goal) {
 #define moveTargetYShift 4
 #define moveCounterShift 0
 void actionMove(Unit *unit) {
-    tUbCoordYX goal;
-    goal.uwYX = unit->uwActionDataA;
-    
-    tUbCoordYX loc = unitGetTilePosition(unit);    
-
     UnitType type = UnitTypes[unit->type];
     UBYTE speed = type.speed;
 
-    WORD vectorX = ((WORD)goal.ubX - loc.ubX) << TILE_SHIFT;
-    WORD vectorY = ((WORD)goal.ubY - loc.ubY) << TILE_SHIFT;
+    WORD vectorX = unit->uwActionDataA - unit->bob.sPos.uwX;
+    WORD vectorY = unit->uwActionDataB - unit->bob.sPos.uwY;
     UWORD absVX = vectorX < 0 ? -vectorX : vectorX;
     UWORD absVY = vectorY < 0 ? -vectorY : vectorY;
     UWORD length = absVX + absVY;
