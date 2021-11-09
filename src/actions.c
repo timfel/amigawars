@@ -22,17 +22,29 @@ void actionMoveTo(Unit *unit, tUbCoordYX goal) {
 #define moveTargetXShift 10
 #define moveTargetYShift 4
 #define moveCounterShift 0
-void actionMove(Unit *unit) {
+void actionMove(Unit *unit, UBYTE **map) {
     UnitType type = UnitTypes[unit->type];
     UBYTE speed = type.speed;
 
+    tUbCoordYX tilePos = unitGetTilePosition(unit);
+
     WORD vectorX = unit->uwActionDataA - unit->bob.sPos.uwX;
     WORD vectorY = unit->uwActionDataB - unit->bob.sPos.uwY;
+
+    if (map[tilePos.ubX + ((vectorX > 0) - (vectorX < 0))][tilePos.ubY] > 15) {
+        // unwalkable tile horizontal
+        vectorX = 0;
+    }
+    if (map[tilePos.ubX][tilePos.ubY + ((vectorY > 0) - (vectorY < 0))] > 15) {
+        // unwalkable tile vertical
+        vectorY = 0;
+    }
+
     UWORD absVX = vectorX < 0 ? -vectorX : vectorX;
     UWORD absVY = vectorY < 0 ? -vectorY : vectorY;
     UWORD length = absVX + absVY;
     if (length == 0) {
-        // reached goal
+        // reached goal or unreachable goal
         unitSetFrame(unit, 0);
         unit->action = ActionStill;
     }
@@ -42,6 +54,7 @@ void actionMove(Unit *unit) {
     if (absVY) {
         unit->bob.sPos.uwY += vectorY / absVY * speed;
     }
+
     UBYTE nextFrame = unitGetFrame(unit) ? 0 : 1;
     if (absVX > absVY) {
         if (vectorX > 0) {
@@ -78,12 +91,12 @@ void actionDie(Unit  __attribute__((__unused__)) *unit) {
     return;
 };
 
-void actionDo(Unit *unit) {
+void actionDo(Unit *unit, UBYTE **map) {
     switch (unit->action) {
         case ActionStill:
             return;
         case ActionMove:
-            actionMove(unit);
+            actionMove(unit, map);
             return;
         // TODO:
     }

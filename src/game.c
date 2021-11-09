@@ -129,12 +129,18 @@ void initBobs(void) {
 /* real boring sprite data */
 UWORD CHIP s_spriteData[] = {
     0, 0,           /* position control           */
+    0b1000000000000000, 0x0000,
     0b1100000000000000, 0x0000,
+    0b1110000000000000, 0x0000,
     0b1111000000000000, 0x0000,
+    0b1111100000000000, 0x0000,
     0b1111110000000000, 0x0000,
+    0b1111111000000000, 0x0000,
     0b1111111100000000, 0x0000,
+    0b1111111110000000, 0x0000,
     0b1111111111000000, 0x0000,
-    0b0000110000000000, 0x0000,
+    0b1111111111100000, 0x0000,
+    0b1111111111110000, 0x0000,
     0b0000110000000000, 0x0000,
     0b0000011000000000, 0x0000,
     0b0000011000000000, 0x0000,
@@ -297,7 +303,7 @@ void gameGsLoop(void) {
     for (; s_ubCurrentlyHandledUnit < ubNextStop; s_ubCurrentlyHandledUnit++) {
         Unit *unit = s_pUnitList[s_ubCurrentlyHandledUnit];
         if (unit) {
-            actionDo(unit);
+            actionDo(unit, s_pMapBuffer->pTileData);
         }
     }
     if (ubNextStop >= MAX_UNITS) {
@@ -329,7 +335,7 @@ void gameGsLoop(void) {
 
     UWORD hstart = mouseX + 128;
     UWORD vstart = mouseY + 44;
-    UWORD vstop = vstart + 9;
+    UWORD vstop = vstart + 15;
     s_spriteData[0] = ((vstart & 0xff) << 8) | ((hstart >> 1) & 0xff); /* VSTART bits 7-0, HSTART bits 8-1 */
     s_spriteData[1] = ((vstop & 0xff) << 8) | /* VSTOP = height + VSTART bits 7-0 */
                     ((vstart >> 8) & 1) << 2 | /* VSTART hight bit 8 */
