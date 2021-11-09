@@ -22,6 +22,8 @@
 #include <ace/managers/blit.h>
 #include <stdint.h>
 
+#include <graphics/sprite.h>
+
 #define BPP 5
 #define COLORS (1 << BPP)
 
@@ -48,14 +50,18 @@ static uint16_t s_pMapPalette[COLORS];
 #define MAP_HEIGHT 200
 #define PANEL_HEIGHT 48
 
+static UWORD spritePos;
+static UWORD tileStartPos;
+static UWORD mapColorsPos;
+static UWORD tileBreakPos;
+static UWORD simplePos;
+static UWORD panelColorsPos;
+static UWORD copListLength;
+
 void loadMap(const char* name) {
     char* mapname = MAPDIR LONGEST_MAPNAME;
     char* palname = IMGDIR "for.plt";
     char* imgname = IMGDIR "for.bm";
-
-    UWORD tileStartPos = 0;
-    UWORD mapColorsPos = tileStartPos + tileBufferGetRawCopperlistInstructionCountStart(BPP);
-    UWORD tileBreakPos = mapColorsPos + COLORS;
 
     snprintf(mapname + strlen(MAPDIR), strlen(LONGEST_MAPNAME) + 1, "%s.map", name);
     tFile *map = fileOpen(mapname, "r");
@@ -120,25 +126,48 @@ void initBobs(void) {
     bobNewReallocateBgBuffers();
 }
 
+/* real boring sprite data */
+UWORD CHIP s_spriteData[] = {
+    0, 0,           /* position control           */
+    0b1100000000000000, 0x0000,
+    0b1111000000000000, 0x0000,
+    0b1111110000000000, 0x0000,
+    0b1111111100000000, 0x0000,
+    0b1111111111000000, 0x0000,
+    0b0000110000000000, 0x0000,
+    0b0000110000000000, 0x0000,
+    0b0000011000000000, 0x0000,
+    0b0000011000000000, 0x0000,
+    0, 0            /* reserved, must init to 0 0 */
+};
+
 void gameGsCreate(void) {
     viewLoad(0);
 
-    UWORD tileStartPos = 0;
-    UWORD mapColorsPos = tileStartPos + tileBufferGetRawCopperlistInstructionCountStart(BPP);
-    UWORD tileBreakPos = mapColorsPos + COLORS;
-    UWORD simplePos = tileBreakPos + tileBufferGetRawCopperlistInstructionCountBreak(BPP);
-    UWORD panelColorsPos = simplePos + simpleBufferGetRawCopperlistInstructionCount(BPP);
-    UWORD copListLength = panelColorsPos + COLORS;
+    spritePos = 0;
+    tileStartPos = spritePos + 2;
+    mapColorsPos = tileStartPos + tileBufferGetRawCopperlistInstructionCountStart(BPP);
+    tileBreakPos = mapColorsPos + COLORS;
+    simplePos = tileBreakPos + tileBufferGetRawCopperlistInstructionCountBreak(BPP);
+    panelColorsPos = simplePos + simpleBufferGetRawCopperlistInstructionCount(BPP);
+    copListLength = panelColorsPos;
 
     s_pView = viewCreate(0,
                          TAG_VIEW_COPLIST_MODE, VIEW_COPLIST_MODE_RAW,
                          TAG_VIEW_COPLIST_RAW_COUNT, copListLength,
                          TAG_DONE);
 
+    ULONG ulSpriteData = (ULONG)s_spriteData;
+    tCopCmd *pCmds = &s_pView->pCopList->pBackBfr->pList[spritePos];
+    copSetMove(&pCmds[0].sMove, &g_pSprFetch[0].uwHi, ulSpriteData << 16);
+    copSetMove(&pCmds[1].sMove, &g_pSprFetch[0].uwLo, ulSpriteData & 0xFFFF);
+    pCmds = &s_pView->pCopList->pFrontBfr->pList[spritePos];
+    copSetMove(&pCmds[0].sMove, &g_pSprFetch[0].uwHi, ulSpriteData << 16);
+    copSetMove(&pCmds[1].sMove, &g_pSprFetch[0].uwLo, ulSpriteData & 0xFFFF);
+
     loadMap("game2");
-    
+
     initBobs();
-    // loadGoldmine();
 
     // create panel area
     // paletteLoad("resources/human_panel.plt", s_pPanelPalette, COLORS);
@@ -150,7 +179,7 @@ void gameGsCreate(void) {
     // for (uint8_t i = 0; i < COLORS; i++) {
     //     copSetMove(&pCmds[i].sMove, &g_pCustom->color[i], s_pPanelPalette[i]);
     // }
-    
+
     s_pVpPanel = vPortCreate(0,
                              TAG_VPORT_VIEW, s_pView,
                              TAG_VPORT_BPP, BPP,
@@ -167,6 +196,9 @@ void gameGsCreate(void) {
     // bitmapLoadFromFile(s_pPanelBuffer->pFront, "resources/human_panel/graphics/ui/human/panel_2.bm", 48, 0);
 
     viewLoad(s_pView);
+
+    systemSetDmaMask(DMAF_SPRITE, 1);
+
     systemUnuse();
 }
 
@@ -192,7 +224,9 @@ static Unit *s_pSelectedUnit = NULL;
 static UBYTE s_ubCurrentlyHandledUnit = 0;
 
 void gameGsLoop(void) {
-    tUwCoordYX mousePos = {.uwX = mouseGetX(MOUSE_PORT_1) & 0xfff0, .uwY = mouseGetY(MOUSE_PORT_1) & 0xfff0};
+    UWORD mouseX = mouseGetX(MOUSE_PORT_1);
+    UWORD mouseY = mouseGetY(MOUSE_PORT_1);
+    tUwCoordYX mousePos = {.uwX = mouseX & 0xfff0, .uwY = mouseY & 0xfff0};
 
     if (s_Mode == edit) {
         if (!(GameCycle % 10)) {
@@ -282,13 +316,25 @@ void gameGsLoop(void) {
         }
     }
 
-    s_TileCursor.sPos.ulYX = mousePos.ulYX;
-    bobNewPush(&s_TileCursor);
+    if (s_Mode == edit) {
+        s_TileCursor.sPos.ulYX = mousePos.ulYX;
+        bobNewPush(&s_TileCursor);
+    }
+
     bobNewEnd();
 
     viewProcessManagers(s_pView);
     copProcessBlocks();
     vPortWaitForEnd(s_pVpPanel);
+
+    UWORD hstart = mouseX + 128;
+    UWORD vstart = mouseY + 44;
+    UWORD vstop = vstart + 9;
+    s_spriteData[0] = ((vstart & 0xff) << 8) | ((hstart >> 1) & 0xff); /* VSTART bits 7-0, HSTART bits 8-1 */
+    s_spriteData[1] = ((vstop & 0xff) << 8) | /* VSTOP = height + VSTART bits 7-0 */
+                    ((vstart >> 8) & 1) << 2 | /* VSTART hight bit 8 */
+                    ((vstop >> 8) & 1) << 1 | /* VSTOP high bit 8 */
+                    (hstart & 1); /* HSTART low bit 0 */
 
     GameCycle++;
 }
