@@ -44,6 +44,7 @@ convertTileset(
        INTERLEAVED
        TARGET ${PROJECT_EXECUTABLE}
        SOURCE ${PROJECT_SOURCE_DIR}/resources/for.png
+       TILE_PATHS ${PROJECT_SOURCE_DIR}/resources/for.png
        DESTINATION ${PROJECT_BINARY_DIR}/resources/imgs/for.bm
        SIZE 16
        PALETTE ${PROJECT_BINARY_DIR}/resources/imgs/for.plt)
@@ -52,6 +53,7 @@ convertTileset(
        INTERLEAVED
        TARGET ${PROJECT_EXECUTABLE}
        SOURCE ${PROJECT_SOURCE_DIR}/resources/spearthrower.png
+       TILE_PATHS ${PROJECT_SOURCE_DIR}/resources/spearthrower.png
        DESTINATION ${PROJECT_BINARY_DIR}/spearthrower.png
        SIZE 32
        PALETTE ${PROJECT_BINARY_DIR}/resources/imgs/for.plt
